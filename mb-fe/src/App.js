@@ -5,7 +5,8 @@ import MetaMask from "./services/MetaMask";
 import { create } from 'ipfs-http-client'
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
- 
+import { ethers } from 'ethers';
+import MBNFT from './utils/contracts/MBNFT.json'
 const projectId = process.env.REACT_APP_PROJECT_ID;
 const projectSecret = process.env.REACT_APP_SECRET_KEY;
 const urlIPFS = process.env.REACT_APP_URL_IPFS
@@ -36,22 +37,35 @@ function App() {
   useEffect(() => {
     (async () => {
       try {
-        
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        console.log(41, provider)
+        const signer =  provider.getSigner();
+        console.log(signer)
+        let network = await provider.getNetwork()
+        console.log(44, network)
+        let chainId
+        chainId =  network['chainId']
+        console.log(45, chainId)
+        let tokenAddress = MBNFT.networks[chainId].address
+        console.log(50, tokenAddress)
+        const tokenContract = new ethers.Contract(tokenAddress,
+                                                    MBNFT.abi,
+                                                      signer);
         const metaMaskInstance = new MetaMask();
         const result = await metaMaskInstance.initialize();
         console.log('initialize MetaMask Class', result);
-        let tokenContract = await result.contracts.token
-        console.log(44, tokenContract)
+        // let tokenContract = await result.contracts.token
+  
         let tokenId = await tokenContract._tokenIds()
         let account = result.currentAddress
         setAccount(account)
         tokenId = parseInt(tokenId.toString())
-        console.log(43, tokenId)
+        console.log(63, tokenId)
         let metadataUrl
         for (let i = 1; i <= tokenId; i++) {
           console.log(typeof i, i )
           let owner = await tokenContract.ownerOf(i)
-          console.log(50, owner, account, owner.toLowerCase()  == account.toLowerCase())
+          console.log(68, owner, account, owner.toLowerCase()  == account.toLowerCase())
           if (owner.toLowerCase()  == account.toLowerCase()) {
              metadataUrl = await tokenContract.tokenURI(i)
              console.log(57, metadataUrl)
@@ -148,8 +162,21 @@ const postData = async () => {
   };
   
   const handleMintNFT = async (url) => {
- 
-     
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    console.log(41, provider)
+    const signer =  provider.getSigner();
+    console.log(signer)
+    let network = await provider.getNetwork()
+    console.log(44, network)
+    let chainId
+    chainId =  network['chainId']
+    console.log(45, chainId)
+    let tokenAddress = MBNFT.networks[chainId].address
+    console.log(50, tokenAddress)
+    const tokenContract = new ethers.Contract(tokenAddress,
+                                                MBNFT.abi,
+                                                  signer);
+    
       try {
         let transaction = await tokenContract.mintNFT(account, url, hash['hash'])
         console.log(transaction)

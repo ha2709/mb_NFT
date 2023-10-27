@@ -13,7 +13,7 @@ contract MBNFT is ERC721URIStorage {
     uint public endDate;
 
     using Counters for Counters.Counter;
-    Counters.Counter private _tokenIds;
+    Counters.Counter public _tokenIds;
 
     mapping(address => string) public  receipts;
     mapping(uint256 => string) public _tokenURIs;
