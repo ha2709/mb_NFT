@@ -12,3 +12,6 @@ migrate
 
  cd mb-fe
   npm start
+
+
+  `git rm -r --cached node_modules`
