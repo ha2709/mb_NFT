@@ -65,13 +65,14 @@ class MetaMask {
            
         this.getAddresses(chainId);
         this.getContracts();
-        
+       
           resolve({
               currentAddress: MetaMask.instance().selectedAddress,
               signer: this.signer,
               addresses: this.getAddresses(chainId),
               contracts: await this.getContracts(),
-              mintNFT: this.mintNFT
+              mintNFT: this.mintNFT,
+              fetchOwnedItems: this.fetchOwnedItems()
           });
       });
     });
@@ -117,10 +118,28 @@ class MetaMask {
           const tokenContract = this.contracts.token;
           let transaction = await tokenContract.mintNFT(to, tokenURI, hash)
           let receipt = await transaction.wait()
+          let event = receipt.events[0]
+          let value = event.args[2]
+          let tokenId = value.toNumber()
           console.log(receipt)
           resolve(receipt);
         })
       }
+    
+      fetchOwnedItems = async () => {
+         
+        return new Promise(async (resolve, reject) => {
+          console.log(132, this.contracts?.token)
+            const tokenContract = this.contracts.token;
+            console.log(134, tokenContract)
+            // let tokenId = await tokenContract.tokenIds()
+            resolve(tokenContract)
+            console.log(133, tokenContract)
+            // let tokenId = await tokenContract.name()
+            // console.log(tokenId)
+            
+          })
+        }
 
 }
 

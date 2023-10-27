@@ -5,9 +5,7 @@ import MetaMask from "./services/MetaMask";
 import { create } from 'ipfs-http-client'
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
-import MBNFT from './utils/contracts/MBNFT.json'
-import { ethers } from 'ethers';
-
+ 
 const projectId = process.env.REACT_APP_PROJECT_ID;
 const projectSecret = process.env.REACT_APP_SECRET_KEY;
 const urlIPFS = process.env.REACT_APP_URL_IPFS
@@ -25,26 +23,49 @@ const client = create({
     },
 });
 function App() {
-  const [fileUrl, setFileUrl ]= useState(null)
-  // const [url, setUrl ]= useState(null)
+  const [fileUrl, setFileUrl ] = useState(null)
+  const [metadataUrl, setMetaDataUrl] = useState("")
   const [description, setDescription ]= useState(null)
   const [name, setName] = useState(null)
   const [hash, setHash ]= useState(null)
   const [account, setAccount] = useState(null)
   const [nric, setNric] = useState('');
-  // const [tokenContract, setTokenContract] = useState(null)
-  // const [signer, setSigner] = useState(null)
+  const [tokenContract, setTokenContract] = useState(null)
+ 
 
   useEffect(() => {
     (async () => {
       try {
         
-        // setSigner(signer)
         const metaMaskInstance = new MetaMask();
         const result = await metaMaskInstance.initialize();
         console.log('initialize MetaMask Class', result);
-        // setTokenContract(result.contracts.token)
-        setAccount(result.currentAddress)
+        let tokenContract = await result.contracts.token
+        console.log(44, tokenContract)
+        let tokenId = await tokenContract._tokenIds()
+        let account = result.currentAddress
+        setAccount(account)
+        tokenId = parseInt(tokenId.toString())
+        console.log(43, tokenId)
+        let metadataUrl
+        for (let i = 1; i <= tokenId; i++) {
+          console.log(typeof i, i )
+          let owner = await tokenContract.ownerOf(i)
+          console.log(50, owner, account, owner.toLowerCase()  == account.toLowerCase())
+          if (owner.toLowerCase()  == account.toLowerCase()) {
+             metadataUrl = await tokenContract.tokenURI(i)
+             console.log(57, metadataUrl)
+             break
+          }
+        }
+        let newString = metadataUrl.replace("https://infura-ipfs.io", "https://xctualyfe.infura-ipfs.io");
+
+        let metadata = await axios.get(newString)
+        setMetaDataUrl(metadata['data']['image'])
+        console.log(metadata['data'])
+        // setMetaDataUrl(metadataUrl)
+        setTokenContract(tokenContract)
+   
       } catch (error) {
         console.log('Error', error);
       }
@@ -69,9 +90,7 @@ function App() {
       console.log(error)
     }
   }
-  // useEffect(() => {
-  //   console.log('File URL:', fileUrl); // This will reflect the updated value of fileUrl
-  // }, [fileUrl]);
+ 
   
 const postData = async () => {
     try {
@@ -111,20 +130,16 @@ const postData = async () => {
     e.preventDefault();
     try {
     console.log(112, account, name, description, fileUrl)
-    // if(!name || !description|| !fileUrl || !nric) return 
+  
     const data = JSON.stringify({
       name, description, image: fileUrl
     })
-    // console.log(84, data, typeof data)
+ 
     const jsonObject = JSON.parse(data);
-    // console.log(75, jsonObject, typeof jsonObject);
-
-      const added = await client.add(JSON.stringify(jsonObject));        
-          // console.log(97, added);
-          const urlMetadata = urlIPFS+added.path;   
-          // setUrl(urlMetadata)    
-          console.log(125, urlMetadata ); 
-          await handleMintNFT(urlMetadata) 
+    const added = await client.add(JSON.stringify(jsonObject));        
+    const urlMetadata = urlIPFS+added.path;   
+    // console.log(125, urlMetadata ); 
+    await handleMintNFT(urlMetadata) 
           
     } catch (error) {
         console.error(error);
@@ -133,19 +148,16 @@ const postData = async () => {
   };
   
   const handleMintNFT = async (url) => {
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      
-      const signer = provider.getSigner();
-      console.log(139, signer)
-      const tokenContract = new ethers.Contract('0x3E481449dCd35ABC492Fcd2aC17ef100c5399949', MBNFT.abi, signer);
-      console.log(140, tokenContract)
+ 
      
-      console.log("Minting NFT...", account, url, hash["hash"]);
-    
-      // console.log(148, account,url,   hash["hash"], typeof url,  typeof hash['hash'])
       try {
-        let transaction = await tokenContract.mintNFT(account, url, hash)
-        console.log(147, transaction)
+        let transaction = await tokenContract.mintNFT(account, url, hash['hash'])
+        console.log(transaction)
+        console.log(160,transaction.value.toNumber() )
+   
+        let confirmation = await transaction.wait()
+        console.log(165, confirmation)
+   
       } catch (error) {
         console.log(error)
       }
@@ -191,6 +203,11 @@ const postData = async () => {
             Mint NFT
           </button>
       </form>
+      {
+          metadataUrl && (
+            <img className="rounded mt-4" width="350" src={metadataUrl} />
+          )
+        }
       </header>
     </div>
   );
