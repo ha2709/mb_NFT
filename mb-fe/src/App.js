@@ -5,6 +5,9 @@ import MetaMask from "./services/MetaMask";
 import { create } from 'ipfs-http-client'
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
+import MBNFT from './utils/contracts/MBNFT.json'
+import { ethers } from 'ethers';
+
 const projectId = process.env.REACT_APP_PROJECT_ID;
 const projectSecret = process.env.REACT_APP_SECRET_KEY;
 const urlIPFS = process.env.REACT_APP_URL_IPFS
@@ -23,39 +26,53 @@ const client = create({
 });
 function App() {
   const [fileUrl, setFileUrl ]= useState(null)
-  const [url, setUrl ]= useState(null)
+  // const [url, setUrl ]= useState(null)
+  const [description, setDescription ]= useState(null)
+  const [name, setName] = useState(null)
   const [hash, setHash ]= useState(null)
   const [account, setAccount] = useState(null)
   const [nric, setNric] = useState('');
-  const [formInput, updateFormInput] = useState({
-    price:'',
-    name:'',
-    description:''
-  })
+  // const [tokenContract, setTokenContract] = useState(null)
+  // const [signer, setSigner] = useState(null)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        
+        // setSigner(signer)
+        const metaMaskInstance = new MetaMask();
+        const result = await metaMaskInstance.initialize();
+        console.log('initialize MetaMask Class', result);
+        // setTokenContract(result.contracts.token)
+        setAccount(result.currentAddress)
+      } catch (error) {
+        console.log('Error', error);
+      }
+    })();
+  }, []);
+
   async function onFileChange(e) {
     const file = e.target.files[0]
     try {
-       await client
+      const response =  await client
       .add(file, {
-          progress: (size) => {
-             
+          progress: (size) => {             
               console.log(`received: ${size}`);
           },
       })
-      .then(async (response) => {
-          const { path } = response;
-
+           const { path } = response;
           const url = urlIPFS+path
           setFileUrl(url)
-          console.log(46, url)
-        
-      })
-       
+          console.log(46, url, fileUrl)
+
     } catch (error) {
       console.log(error)
     }
   }
-
+  // useEffect(() => {
+  //   console.log('File URL:', fileUrl); // This will reflect the updated value of fileUrl
+  // }, [fileUrl]);
+  
 const postData = async () => {
     try {
       const response = await axios.post('/users', {
@@ -63,9 +80,9 @@ const postData = async () => {
         wallet_address: account
       });
       setHash(response.data)
-      console.log('Response:', response.data);
+      console.log('Hash data :', response.data);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error to create Hash :', error);
     }
   };
 
@@ -74,75 +91,88 @@ const postData = async () => {
     setNric(e.target.value);
   };
 
+  const handleDescriptionChange = (e) => {
+    console.log(73, "Description ",e.target.value)
+    setDescription(e.target.value);
+  };
+  const handleNameChange = (e) => {
+    console.log(85,name, e.target.value)
+    setName(e.target.value);
+  };
   const handleNricBlur = () => {
     console.log(77, nric)
     if (nric) {
       postData();
     }
   };
-  useEffect(() => {
-    (async () => {
-      try {
-        const metaMaskInstance = new MetaMask();
-        const result = await metaMaskInstance.initialize();
-        console.log('initialize MetaMask Class', result);
-        setAccount(result.currentAddress)
-      } catch (error) {
-        console.log('Error', error);
-      }
-    })();
-  }, []);
- 
 
-  const handleMintNFT = async (e) => {
-    createUrl(e)
-  }
-  async function createUrl(e) {
-  // const handleMintNFT = async (e) => {
-    console.log(68)
+
+  const createUrl = async (e) =>{
     e.preventDefault();
-    const {name, description, nric} = formInput
-    console.log(72, account, name, description, nric)
-    if(!name || !description|| !fileUrl || !nric) return 
+    try {
+    console.log(112, account, name, description, fileUrl)
+    // if(!name || !description|| !fileUrl || !nric) return 
     const data = JSON.stringify({
       name, description, image: fileUrl
     })
-    console.log(84, data, typeof data)
+    // console.log(84, data, typeof data)
     const jsonObject = JSON.parse(data);
-    console.log(75, jsonObject, typeof jsonObject);
-    try {
+    // console.log(75, jsonObject, typeof jsonObject);
+
       const added = await client.add(JSON.stringify(jsonObject));        
-          console.log(97, added);
-          const urlMetadata = urlIPFS+added.path;       
-          console.log(89, urlMetadata);  
-          setUrl(urlMetadata)
+          // console.log(97, added);
+          const urlMetadata = urlIPFS+added.path;   
+          // setUrl(urlMetadata)    
+          console.log(125, urlMetadata ); 
+          await handleMintNFT(urlMetadata) 
+          
     } catch (error) {
         console.error(error);
     }
-    console.log("Minting NFT...");
+   
   };
-
+  
+  const handleMintNFT = async (url) => {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      
+      const signer = provider.getSigner();
+      console.log(139, signer)
+      const tokenContract = new ethers.Contract('0x3E481449dCd35ABC492Fcd2aC17ef100c5399949', MBNFT.abi, signer);
+      console.log(140, tokenContract)
+     
+      console.log("Minting NFT...", account, url, hash["hash"]);
+    
+      // console.log(148, account,url,   hash["hash"], typeof url,  typeof hash['hash'])
+      try {
+        let transaction = await tokenContract.mintNFT(account, url, hash)
+        console.log(147, transaction)
+      } catch (error) {
+        console.log(error)
+      }
+  
+    
+  }
   return (
     <div className="App">
       <header className="App-header">
         
-       <form onSubmit={handleMintNFT}>
-          <div className="mb-3">
-            <input className="form-control" type="file" onChange={e=>onFileChange(e)}/>
-          </div>
+       <form onSubmit={createUrl}>
+     
           <div className="mb-3">
             <label htmlFor="name" className="form-label">Name:</label>
             <input type="text" 
             
               className="form-control" id="name" name="name" 
-              onChange={e => updateFormInput({ ...formInput, name: e.target.value })}
+              onChange={handleNameChange}
+              // onChange={e => updateFormInput({ ...formInput, name: e.target.value })}
             />
           </div>
           <div className="mb-3">
             <label htmlFor="description" className="form-label">Description:</label>
             <textarea className="form-control" id="description" name="description" 
-              onChange={e => updateFormInput({ ...formInput, description: e.target.value })}
-              // onChange={e=>onNRICChange(e)}
+              // onChange={e => updateFormInput({ ...formInput, description: e.target.value })}
+              onChange={handleDescriptionChange}
+             
             />
           </div>
           <div className="mb-3">
@@ -154,7 +184,9 @@ const postData = async () => {
                placeholder="Enter NRIC"
             />
           </div>      
-
+          <div className="mb-3">
+            <input className="form-control" type="file" onChange={e=>onFileChange(e)}/>
+          </div>
           <button type='submit' className="btn btn-success">
             Mint NFT
           </button>

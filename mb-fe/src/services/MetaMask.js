@@ -51,7 +51,7 @@ class MetaMask {
         this.provider = new ethers.providers.Web3Provider(window.ethereum);
     
         this.signer = this.provider.getSigner();
-        console.log(58, this.signer)
+    
       } catch (error) {
           throw new Error(error);
       }
@@ -61,15 +61,16 @@ class MetaMask {
         this.network = this.provider.getNetwork().then(async (response) => {
         const { chainId } = response;
 
-        console.log(53, chainId)
+   
            
         this.getAddresses(chainId);
         this.getContracts();
+        
           resolve({
               currentAddress: MetaMask.instance().selectedAddress,
               signer: this.signer,
               addresses: this.getAddresses(chainId),
-              contracts: this.getContracts(),
+              contracts: await this.getContracts(),
               mintNFT: this.mintNFT
           });
       });
@@ -81,7 +82,7 @@ class MetaMask {
       this.contract = {
         token: tokenContract         
       };
-      console.log(75, this.contract)
+   
        return this.contract
     };
 
@@ -106,23 +107,20 @@ class MetaMask {
           console.log('not deployed contract to this network', error);
         }
       }
-      console.log(111, this.addresses)
+  
       return this.addresses;
     };
-    submitItem = async (to, tokenURI, receipt) => {
- 
-      return new Promise(async (resolve, reject) => {
-          
 
-          
+    mintNFT = async (to, tokenURI, hash) => {
+      console.log(115, to, tokenURI, hash)
+      return new Promise(async (resolve, reject) => {
           const tokenContract = this.contracts.token;
-          let transaction = await tokenContract.mintNFT(to, tokenURI, receipt)
+          let transaction = await tokenContract.mintNFT(to, tokenURI, hash)
           let receipt = await transaction.wait()
           console.log(receipt)
+          resolve(receipt);
         })
       }
-    
-    
 
 }
 
